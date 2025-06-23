@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HORNET Wallet</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; margin-bottom: 30px; border-radius: 10px; }
+        .card { background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .account-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+        .account-card { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; padding: 20px; border-radius: 10px; }
+        .account-card.updated { animation: pulse 2s ease-in-out; }
+        .balance { font-size: 24px; font-weight: bold; margin: 10px 0; }
+        .btn { background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px; text-decoration: none; display: inline-block; }
+        .btn:hover { background: #5a67d8; }
+        .btn-sync { background: #38a169; }
+        .btn-sync:hover { background: #2f855a; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        .transaction-list { max-height: 400px; overflow-y: auto; }
+        .transaction-item { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
+        .notification { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .notification.success { background: #c6f6d5; color: #2f855a; }
+        .notification.error { background: #fed7d7; color: #c53030; }
+        .live-notifications { position: fixed; top: 20px; right: 20px; z-index: 1001; }
+        .live-notification { background: #48bb78; color: white; padding: 15px; border-radius: 5px; margin-bottom: 10px; max-width: 300px; animation: slideIn 0.3s ease-in; }
+        .live-notification.balance-update { background: #4299e1; }
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        .sync-status { text-align: center; padding: 10px; margin: 10px 0; border-radius: 5px; background: #e6fffa; color: #38a169; }
+        .tx-amount { font-weight: bold; }
+        .tx-type { font-size: 12px; background: #e2e8f0; color: #4a5568; padding: 2px 6px; border-radius: 3px; }
+        .tx-type.reward { background: #fbd38d; color: #744210; }
+        .tx-type.transfer { background: #bee3f8; color: #2c5282; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🐝 HORNET Wallet</h1>
+            <p>Multi-node cryptocurrency wallet for HORNET network</p>
+            <div class="sync-status">
+                Balance sync: Every 2 minutes | Last sync: <span id="lastSync">Never</span>
+            </div>
+        </div>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="notification {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        {% block content %}{% endblock %}
+    </div>
+    
+    <div class="live-notifications" id="liveNotifications"></div>
+    
+    <script>
+        const socket = io();
+        
+        socket.on('new_transaction', function(data) {
+            showLiveNotification(data.message, 'success');
+            setTimeout(() => location.reload(), 2000);
+        });
+        
+        socket.on('balance_update', function(data) {
+            showLiveNotification(data.message, 'balance-update');
+            updateLastSyncTime();
+            setTimeout(() => location.reload(), 3000);
+        });
+        
+        function showLiveNotification(message, type = 'info') {
+            const container = document.getElementById('liveNotifications');
+            const notification = document.createElement('div');
+            notification.className = `live-notification ${type}`;
+            notification.textContent = message;
+            container.appendChild(notification);
+            
+            setTimeout(() => notification.remove(), 5000);
+        }
+        
+        function updateLastSyncTime() {
+            const lastSyncElement = document.getElementById('lastSync');
+            if (lastSyncElement) {
+                lastSyncElement.textContent = new Date().toLocaleTimeString();
+            }
+        }
+        
+        function manualSync() {
+            fetch('/api/sync_balances', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        showLiveNotification('Manual balance sync completed', 'success');
+                        updateLastSyncTime();
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        showLiveNotification('Sync failed: ' + data.message, 'error');
+                    }
+                });
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            updateLastSyncTime();
+        });
+    </script>
+</body>
+</html>

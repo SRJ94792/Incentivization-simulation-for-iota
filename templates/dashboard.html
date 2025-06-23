@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2>Node Accounts</h2>
+        <button class="btn btn-sync" onclick="manualSync()">Manual Sync</button>
+    </div>
+</div>
+
+<div class="account-grid">
+    {% for account in accounts %}
+    <div class="account-card" data-node="{{ account.node_name }}">
+        <h3>{{ account.node_name }}</h3>
+        <div class="balance">{{ "%.4f"|format(account.balance) }} TOKENS</div>
+        <a href="/account/{{ account.id }}" class="btn">View Details</a>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="card">
+    <h3>Send Money</h3>
+    <form method="POST" action="/send_money">
+        <div class="form-group">
+            <label>From Account:</label>
+            <select name="from_account" required>
+                {% for account in accounts %}
+                <option value="{{ account.id }}">{{ account.node_name }} ({{ "%.4f"|format(account.balance) }} TOKENS)</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>To Account:</label>
+            <select name="to_account" required>
+                {% for account in accounts %}
+                <option value="{{ account.id }}">{{ account.node_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Amount:</label>
+            <input type="number" name="amount" step="0.0001" min="0.0001" required>
+        </div>
+        <div class="form-group">
+            <label>Description (optional):</label>
+            <input type="text" name="description" placeholder="Enter description">
+        </div>
+        <button type="submit" class="btn">Send Money</button>
+    </form>
+</div>
+
+<div class="card">
+    <h3>Recent Transactions</h3>
+    <div class="transaction-list">
+        {% for tx in transactions %}
+        <div class="transaction-item">
+            <div>
+                <strong>{{ tx.from_name }} → {{ tx.to_name }}</strong><br>
+                <small>{{ tx.formatted_time }}</small>
+                {% if tx.description %}
+                <br><small>{{ tx.description }}</small>
+                {% endif %}
+            </div>
+            <div>
+                <span class="tx-amount">{{ "%.4f"|format(tx.amount) }} TOKENS</span><br>
+                <span class="tx-type {{ tx.transaction_type }}">{{ tx.transaction_type.upper() }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

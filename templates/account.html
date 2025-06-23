@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2>{{ account.node_name }}</h2>
+            <div class="balance">{{ "%.4f"|format(account.balance) }} TOKENS</div>
+        </div>
+        <a href="/" class="btn">Back to Dashboard</a>
+    </div>
+</div>
+
+<div class="card">
+    <h3>Send from this Account</h3>
+    <form method="POST" action="/send_money">
+        <input type="hidden" name="from_account" value="{{ account.id }}">
+        <div class="form-group">
+            <label>To Account:</label>
+            <select name="to_account" required>
+                {% for acc in all_accounts %}
+                    {% if acc.id != account.id %}
+                    <option value="{{ acc.id }}">{{ acc.node_name }}</option>
+                    {% endif %}
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Amount:</label>
+            <input type="number" name="amount" step="0.0001" min="0.0001" max="{{ account.balance }}" required>
+        </div>
+        <div class="form-group">
+            <label>Description:</label>
+            <input type="text" name="description" placeholder="Enter description">
+        </div>
+        <button type="submit" class="btn">Send Money</button>
+    </form>
+</div>
+
+<div class="card">
+    <h3>Transaction History</h3>
+    <div class="transaction-list">
+        {% for tx in transactions %}
+        <div class="transaction-item">
+            <div>
+                <strong>{{ tx.from_name }} → {{ tx.to_name }}</strong><br>
+                <small>{{ tx.formatted_time }}</small>
+                {% if tx.description %}
+                <br><small>{{ tx.description }}</small>
+                {% endif %}
+            </div>
+            <div>
+                <span class="tx-amount">{{ "%.4f"|format(tx.amount) }} TOKENS</span><br>
+                <span class="tx-type {{ tx.transaction_type }}">{{ tx.transaction_type.upper() }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="card">
+    <h3>Notifications</h3>
+    <div class="transaction-list">
+        {% for notif in notifications %}
+        <div class="transaction-item">
+            <div>{{ notif.message }}</div>
+            <div><small>{{ notif.formatted_time }}</small></div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
